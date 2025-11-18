@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 
 class WBAPIClient:
     """
-    Клиент для Wildberries Statistics API (v1).
+    Клиент для Wildberries Statistics API (v1) и Finance API (v5).
     
     Официальная документация: https://dev.wildberries.ru/openapi/reports
     Базовый URL: https://statistics-api.wildberries.ru
@@ -26,6 +26,74 @@ class WBAPIClient:
             "Authorization": api_key,
             "Content-Type": "application/json"
         }
+    
+    # ========== ГЛАВНЫЙ ФИНАНСОВЫЙ ОТЧЁТ (V5) ==========
+    
+    def get_report_detail_by_period(self, date_from: str, date_to: str, 
+                                    limit: int = 100000, rrdid: int = 0) -> List[Dict]:
+        """
+        Отчёт о продажах по реализации - ГЛАВНЫЙ ОТЧЁТ!
+        
+        Endpoint: /api/v5/supplier/reportDetailByPeriod
+        Данные доступны с 29 января 2024 года
+        
+        Возвращает детализацию к отчётам реализации со ВСЕМИ финансовыми данными:
+        - Комиссия WB (ppvz_sales_commission)
+        - Логистика (delivery_rub)
+        - Хранение (storage_fee)
+        - Штрафы (penalty)
+        - Доплаты (additional_payment)
+        - Приёмка (acceptance)
+        - К выплате (ppvz_for_pay)
+        - И многое другое!
+        
+        Rate limit: 1 запрос/минуту
+        
+        Args:
+            date_from: Начальная дата (RFC3339): "2025-10-13T00:00:00Z" или (YYYY-MM-DD)
+            date_to: Конечная дата (YYYY-MM-DD)
+            limit: Количество строк (<= 100000)
+            rrdid: Уникальный ID строки для пагинации (по умолчанию 0)
+            
+        Returns:
+            Список детализации реализации
+            
+        Example:
+            >>> client = WBAPIClient(api_key="your_key")
+            >>> report = client.get_report_detail_by_period(
+            ...     date_from="2025-10-13",
+            ...     date_to="2025-10-19",
+            ...     limit=100000
+            ... )
+            >>> print(f"Загружено {len(report)} записей")
+        """
+        endpoint = f"{self.base_url}/api/v5/supplier/reportDetailByPeriod"
+        params = {
+            "dateFrom": date_from if 'T' in date_from else date_from,
+            "dateTo": date_to,
+            "limit": min(limit, 100000),
+            "rrdid": rrdid
+        }
+        return self._make_request(endpoint, params)
+    
+    def get_account_balance(self) -> Dict:
+        """
+        Получить баланс продавца.
+        
+        Endpoint: /api/v1/account/balance
+        Возвращает данные виджета баланса на главной странице.
+        
+        Rate limit: 1 запрос/минуту
+        
+        Returns:
+            {
+                "currency": "RUB",
+                "current": 10196.21,      # Текущий баланс
+                "for_withdraw": 6395.8    # Доступно к выводу
+            }
+        """
+        endpoint = f"{self.base_url}/api/v1/account/balance"
+        return self._make_request(endpoint, {})
     
     # ========== ОСНОВНЫЕ ОТЧЁТЫ (СТАТИСТИКА) ==========
     
