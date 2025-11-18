@@ -3,7 +3,17 @@
 📊 Сравнение данных из WB API с CSV отчётом и расчёт метрик.
 
 Использование:
+    # Базовое (последние 7 дней)
     python compare_api_vs_csv.py
+    
+    # С указанием периода
+    python compare_api_vs_csv.py --from 2025-10-20 --to 2025-10-26
+    
+    # С указанием CSV файла
+    python compare_api_vs_csv.py --csv data_samples/my_report.csv
+    
+    # Полная команда
+    python compare_api_vs_csv.py --from 2025-10-20 --to 2025-10-26 --csv data_samples/43-nedelia.csv
 
 Что делает:
 1. Загружает данные через WB API (используя multi_report_loader)
@@ -15,6 +25,7 @@
 import os
 import sys
 import json
+import argparse
 import pandas as pd
 from pathlib import Path
 from datetime import datetime, timedelta
@@ -53,7 +64,7 @@ class DataComparator:
             Словарь с данными из API
         """
         if reports is None:
-            reports = ["reportDetail", "sales", "orders", "stocks"]
+            reports = ["reportDetail"]
         
         print("\n📡 Загрузка данных через WB API...")
         print(f"   Период: {date_from} → {date_to}")
@@ -303,8 +314,56 @@ class DataComparator:
         print(f"\n💾 Отчёт сохранён: {output_path}")
 
 
+def parse_arguments():
+    """Парсинг аргументов командной строки."""
+    parser = argparse.ArgumentParser(
+        description='Сравнение данных из WB API с CSV отчётом',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Примеры использования:
+  # Базовое (последние 7 дней)
+  python compare_api_vs_csv.py
+  
+  # С указанием периода
+  python compare_api_vs_csv.py --from 2025-10-20 --to 2025-10-26
+  
+  # С указанием CSV файла
+  python compare_api_vs_csv.py --csv data_samples/my_report.csv
+  
+  # Полная команда
+  python compare_api_vs_csv.py --from 2025-10-20 --to 2025-10-26 --csv data_samples/43-nedelia.csv
+        """
+    )
+    
+    parser.add_argument(
+        '--from', '-f',
+        dest='date_from',
+        type=str,
+        help='Дата начала периода (YYYY-MM-DD), по умолчанию 7 дней назад'
+    )
+    
+    parser.add_argument(
+        '--to', '-t',
+        dest='date_to',
+        type=str,
+        help='Дата окончания периода (YYYY-MM-DD), по умолчанию сегодня'
+    )
+    
+    parser.add_argument(
+        '--csv', '-c',
+        dest='csv_file',
+        type=str,
+        default='data_samples/43-nedelia-2-List1.csv',
+        help='Путь к CSV файлу WB (по умолчанию: data_samples/43-nedelia-2-List1.csv)'
+    )
+    
+    return parser.parse_args()
+
+
 def main():
     """Главная функция."""
+    args = parse_arguments()
+    
     print("\n" + "="*70)
     print("📊 СРАВНЕНИЕ ДАННЫХ WB API vs CSV")
     print("="*70)
@@ -321,9 +380,15 @@ def main():
     # Создаём компаратор
     comparator = DataComparator(api_key)
     
-    # Параметры для загрузки
-    date_to = datetime.now()
-    date_from = date_to - timedelta(days=7)
+    # Определяем период
+    if args.date_from and args.date_to:
+        # Используем указанные даты
+        date_from = datetime.strptime(args.date_from, "%Y-%m-%d")
+        date_to = datetime.strptime(args.date_to, "%Y-%m-%d")
+    else:
+        # По умолчанию последние 7 дней
+        date_to = datetime.now()
+        date_from = date_to - timedelta(days=7)
     
     date_from_str = date_from.strftime("%Y-%m-%dT00:00:00Z")
     date_to_str = date_to.strftime("%Y-%m-%dT23:59:59Z")
@@ -341,11 +406,12 @@ def main():
         return
     
     # 2. Загружаем данные из CSV
-    csv_path = Path("data_samples/43-nedelia-2-List1.csv")
+    csv_path = Path(args.csv_file)
     
     if not csv_path.exists():
         print(f"\n⚠️ CSV файл не найден: {csv_path}")
-        print("💡 Укажите путь к вашему CSV файлу WB\n")
+        print("💡 Укажите корректный путь через --csv параметр")
+        print(f"   Пример: python compare_api_vs_csv.py --csv data_samples/ваш_файл.csv\n")
         return
     
     try:
