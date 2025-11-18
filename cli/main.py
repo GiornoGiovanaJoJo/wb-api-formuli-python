@@ -2,6 +2,7 @@
 import sys
 from pathlib import Path
 from typing import List
+from datetime import datetime
 
 from config.config import Config
 from api.wb_client import WBAPIClient
@@ -19,24 +20,43 @@ def load_from_api() -> List[Product]:
         
         client = WBAPIClient(Config.WB_API_KEY, Config.WB_API_URL)
         
-        # Запрашиваем даты
-        date_from = Prompts.get_string_input("Дата начала (YYYY-MM-DD)", Config.DATE_FROM)
-        date_to = Prompts.get_string_input("Дата окончания (YYYY-MM-DD)", Config.DATE_TO)
+        # Запрашиваем дату начала в формате RFC3339
+        print("\n📅 Формат даты: YYYY-MM-DDTHH:MM:SSZ (RFC3339)")
+        print("Пример: 2025-10-13T00:00:00Z")
         
-        nm_id_str = Prompts.get_string_input("Фильтр по nm_id (оставьте пустым для всех)", "")
-        nm_id = int(nm_id_str) if nm_id_str else None
+        date_from = Prompts.get_string_input(
+            "Дата начала (RFC3339)", 
+            f"{Config.DATE_FROM}T00:00:00Z"
+        )
         
-        print("\n⏳ Загрузка данных...")
-        sales_data = client.get_sales(date_from, date_to, nm_id)
+        print("\n⏳ Загрузка данных о продажах...")
+        print("💡 WB API обновляет данные раз в 30 минут")
+        
+        # Вызываем API с правильным количеством аргументов
+        sales_data = client.get_sales(date_from=date_from)
         
         if not sales_data:
             print("⚠️  Данные не найдены")
+            print("💡 Попробуйте:")
+            print("   - Изменить дату начала")
+            print("   - Проверить API ключ в .env")
+            print("   - Убедиться, что есть продажи за этот период")
             return []
         
         print(f"✅ Загружено {len(sales_data)} записей")
         
-        # Преобразуем данные в Product
-        # TODO: Адаптировать под реальный формат WB API
+        # Показываем пример полей
+        if sales_data:
+            print("\n🔑 Доступные поля в данных:")
+            for key in list(sales_data[0].keys())[:10]:
+                value = sales_data[0].get(key)
+                print(f"  - {key}: {value}")
+            if len(sales_data[0].keys()) > 10:
+                print(f"  ... и ещё {len(sales_data[0].keys()) - 10} полей")
+        
+        # TODO: Преобразовать данные WB API в Product
+        print("\n⚠️  Преобразование данных WB API в Product ещё не реализовано")
+        print("💡 Используйте опцию 2 (Загрузка из CSV) для полного анализа")
         return []
         
     except Exception as e:
