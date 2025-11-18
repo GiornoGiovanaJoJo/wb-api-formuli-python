@@ -11,11 +11,11 @@ class Config:
     
     # WB API settings
     WB_API_KEY = os.getenv('WB_API_KEY', '')
-    WB_API_URL = os.getenv('WB_API_URL', 'https://suppliers-api.wildberries.ru')
+    WB_API_URL = os.getenv('WB_API_URL', 'https://statistics-api.wildberries.ru')
     
     # Date filters
-    DATE_FROM = os.getenv('DATE_FROM', '2024-01-01')
-    DATE_TO = os.getenv('DATE_TO', '2024-12-31')
+    DATE_FROM = os.getenv('DATE_FROM', '2025-10-13')
+    DATE_TO = os.getenv('DATE_TO', '2025-10-19')
     
     # Export settings
     OUTPUT_DIR = Path(os.getenv('OUTPUT_DIR', 'output'))
@@ -32,3 +32,15 @@ class Config:
     def ensure_output_dir(cls):
         """Create output directory if it doesn't exist."""
         cls.OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    
+    @classmethod
+    def print_config(cls):
+        """Вывести текущую конфигурацию."""
+        print("\n⚙️  КОНФИГУРАЦИЯ:")
+        print("=" * 50)
+        print(f"API URL: {cls.WB_API_URL}")
+        print(f"API Key: {'*' * 20 if cls.WB_API_KEY else 'НЕ УКАЗАН'}")
+        print(f"Период: {cls.DATE_FROM} - {cls.DATE_TO}")
+        print(f"Выходная папка: {cls.OUTPUT_DIR}")
+        print(f"Формат экспорта: {cls.EXPORT_FORMAT}")
+        print("=" * 50)
